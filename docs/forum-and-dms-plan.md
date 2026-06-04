@@ -20,7 +20,9 @@ the source of truth before code is written.
 | **Moderation** | **Staff leaders** own the queue, backed by a **banned-word list**. |
 | **Display names** | **Real display names required** (no pseudonyms). |
 | **Flagged content** | If a post/comment hits the word list it goes into a **pending state visible only to leaders**. Leader **approves** → it publishes. Leader **rejects** → it's **archived (off the live site) and removed**. |
-| **Start scope** | **Event discussion first.** DMs follow later. |
+| **Events & calendar** | A new **Calendar** nav page shows chapter events as a month grid; clicking an event opens its details + a link to its thread (or to start one). Events are leader-managed (seeded from the current Events section). |
+| **Threads** | **One thread per event, started on demand by any signed-in member;** others read and reply once it exists. |
+| **Start scope** | **Calendar + event discussion first.** DMs follow later. |
 
 ---
 
@@ -81,10 +83,11 @@ login_tokens(id, email, token_hash, created_at, expires_at, used_at)
 invites(id, email, token_hash, invited_by, created_at, expires_at, used_at)
 sessions(id, user_id, created_at, expires_at)
 
-events(id, slug UNIQUE, title, starts_at, location, created_at)  -- threads attach here
-posts(id, event_id, author_id, body, status,           -- status: published | pending
+events(id, slug UNIQUE, title, description, location, url,        -- the chapter calendar
+       starts_at, ends_at, all_day, created_by, created_at)      -- leader-managed
+threads(id, event_id UNIQUE, started_by, created_at)             -- one per event, on demand
+posts(id, thread_id, author_id, body, status,                    -- status: published | pending
       flagged_terms, created_at)
-comments(id, post_id, author_id, body, status, flagged_terms, created_at)
 
 banned_terms(id, term UNIQUE, created_by, created_at)
 moderation_log(id, target_type, target_id, action,     -- action: approve | reject | ban | …
@@ -94,9 +97,11 @@ archived_content(id, original_type, original_id, author_id, body,
 reports(id, reporter_id, target_type, target_id, reason, created_at, resolved_at, resolved_by)
 ```
 
-*Events source:* seed `events` from the current static Events section and let
-leaders add/edit them, so each discussion thread has a stable `slug`. (Default
-unless you'd rather make the public Events section fully dynamic too.)
+*Events source:* `events` is leader-managed, seeded from the current Events
+section, and is the single source for the **Calendar** page. A **thread** is
+created the first time a member starts discussing an event (one per event);
+replies are `posts`. (The static homepage Events section can later read from the
+same table — optional.)
 
 ---
 
@@ -127,19 +132,24 @@ Public/auth:
 - `POST /auth/logout`.
 - `GET  /me` → current user; `POST /me` `{ display_name, dm_opt_in }`.
 
-Event discussion:
-- `GET  /events` → events + thread/post counts.
-- `GET  /events/:slug/posts` → published posts (+ the viewer's own pending).
-- `POST /events/:slug/posts` `{ body }` → create (word-list gate).
-- `POST /posts/:id/comments` `{ body }` → create comment (word-list gate).
+Calendar & events (public read):
+- `GET  /events?from=…&to=…` → events in a date range (powers the calendar grid).
+- `GET  /events/:slug` → one event's details (+ whether a thread exists).
+
+Event discussion (auth):
+- `POST /events/:slug/thread` → start the event's thread (idempotent — returns
+  the existing one if a member already started it).
+- `GET  /threads/:id` → the thread's published posts (+ the viewer's own pending).
+- `POST /threads/:id/posts` `{ body }` → reply (word-list gate).
 - `POST /reports` `{ target_type, target_id, reason }` → flag (fast follow).
 
 Leader-only:
 - `POST /invites` `{ email }` → invite an outsider.
-- `GET  /mod/queue` → pending posts/comments (+ reports).
+- `GET  /mod/queue` → pending posts (+ reports).
 - `POST /mod/:type/:id/approve` · `POST /mod/:type/:id/reject` `{ reason }`.
 - `GET/POST/DELETE /mod/terms` → manage the banned-word list.
 - `POST /mod/users/:id/ban`.
+- `POST/PATCH/DELETE /events` → create/edit/remove calendar events.
 
 All authenticated routes check the session cookie; leader routes additionally
 require `role = leader`. Posting/messaging is rate-limited per user.
@@ -153,11 +163,18 @@ A new community area styled with the existing `main.css` tokens/components
 
 - **Sign-in** — email field → "check your inbox" state.
 - **Profile** — set/edit display name; DM opt-in toggle (off by default).
-- **Events list** — cards linking into each event's thread.
-- **Thread** — posts + comments, composer with a "pending review" affordance.
-- **Leader area** — invite form, moderation queue (approve/reject), word-list
-  editor, ban control. Visible only to leaders.
-- A **"Community"** nav entry (prompts sign-in when logged out).
+- **Calendar** (new nav entry, public) — a month-grid calendar of chapter events
+  with prev/next navigation. Click an event → details.
+- **Event details** — date/time, location, description, and either "Join the
+  discussion" (opens the thread) or "Start the discussion" if none exists yet.
+- **Thread** — the event's posts/replies, with a composer and a "pending review"
+  affordance for flagged content.
+- **Profile** — set/edit display name; DM opt-in toggle (off by default).
+- **Leader area** — event management, invite form, moderation queue
+  (approve/reject), word-list editor, ban control. Visible only to leaders.
+- Nav entries: **"Calendar"** (public) and **"Community"** (prompts sign-in when
+  logged out). The calendar is viewable by anyone; starting/replying to a thread
+  requires an account.
 
 DMs (Phase 3) get a small, deliberately minimal "Messages" entry — opt-in, 1:1,
 with report/block and the same word-list gate.
@@ -169,10 +186,13 @@ with report/block and the same word-list gate.
 - **Phase 1 — Accounts & auth.** D1 schema + migrations; magic-link sign-in
   (`@nmu.edu` + invites); sessions; required display name; `LEADER_EMAILS`
   bootstrap; leader invite endpoint; sign-in + profile UI; cron cleanup.
-- **Phase 2 — Event discussion + moderation (the priority).** Events, posts,
-  comments; word-list gate → pending/leader-only; leader queue
-  (approve / reject→archive); banned-terms management; ban; thread UI. Add the
-  report button here or immediately after.
+- **Phase 2 — Calendar + event discussion + moderation (the priority).** The
+  public **Calendar** page and event details; leader event management (seeded
+  from the current Events); on-demand **threads** (any member starts one per
+  event) with posts; word-list gate → pending/leader-only; leader queue
+  (approve / reject→archive); banned-terms management; ban. The calendar +
+  event details are public and can land first; threads/moderation need accounts.
+  Add the report button here or immediately after.
 - **Phase 3 — DMs (minimal).** Opt-in 1:1 messages via polling; report/block;
   word-list gate; small UI. Only if/when wanted.
 
