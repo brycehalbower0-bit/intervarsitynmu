@@ -117,7 +117,10 @@ h1, h2, h3, h4 {
 }
 .btn:hover { transform: translateY(-2px); color: var(--btn-fg); box-shadow: 0 12px 26px rgba(231, 97, 39, .34); }
 .btn:active { transform: translateY(0); }
-.btn--orange { background: var(--grad-orange); }
+/* Scale the brand gradient up and center it so the pill shows the gradient's
+   gentle middle band — avoids the dark/gold extremes pooling at the rounded
+   ends (which read as an unintended 3D bevel) while staying on-brand. */
+.btn--orange { background: var(--grad-orange); background-size: 200% 200%; background-position: center; }
 .btn--blue { background: var(--missional-blue); box-shadow: 0 6px 18px rgba(0, 104, 128, .28); }
 .btn--blue:hover { box-shadow: 0 12px 26px rgba(0, 104, 128, .34); }
 .btn--ghost { background: transparent; color: var(--faithful-navy); border-color: currentColor; box-shadow: none; }
