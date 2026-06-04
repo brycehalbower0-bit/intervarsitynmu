@@ -104,7 +104,7 @@
     <nav class="wrap nav" aria-label="Primary">
       <a class="brand-logo" href="#top" aria-label="InterVarsity at Northern Michigan University — home">
         <img class="brand-logo-img" src="/assets/logos/InterVarsity_horizontal_gradient.png" width="1276" height="390" alt="InterVarsity" />
-        <span class="chapter">Northern<br />Michigan U</span>
+        <span class="chapter">Northern<br />Michigan University</span>
       </a>
 
       <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Open menu">
@@ -464,6 +464,28 @@
       </div>
     </section>
 
+    <!-- ===================== Newsletter ===================== -->
+    <section class="section section--blue section--tight" id="newsletter">
+      <div class="wrap newsletter">
+        <div class="newsletter-copy reveal">
+          <p class="eyebrow" style="color:var(--fiya-gold)">Stay in the loop</p>
+          <h2>The President's Newsletter</h2>
+          <p>A short, honest note from our student president — what's coming up, stories from the chapter, and simple ways to get involved. About one email a month. No spam, unsubscribe anytime.</p>
+        </div>
+        <form class="newsletter-form reveal d1" id="newsletter-form" novalidate>
+          <div class="nl-row">
+            <label class="sr-only" for="nl-email">Email address</label>
+            <input id="nl-email" name="email" type="email" autocomplete="email" required placeholder="you@nmu.edu" />
+            <button class="btn btn--orange" type="submit" id="nl-submit">Subscribe <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+          </div>
+          <!-- honeypot: hidden from humans, catches bots -->
+          <div class="hp" aria-hidden="true"><label for="nl-company">Company</label><input id="nl-company" name="company" type="text" tabindex="-1" autocomplete="off" /></div>
+          <p class="form-note nl-note">We'll only use your email for the newsletter. Unsubscribe anytime.</p>
+          <div class="form-status" id="nl-status" role="status" aria-live="polite"></div>
+        </form>
+      </div>
+    </section>
+
     <!-- ===================== CTA band ===================== -->
     <section class="section cta-band">
       <div class="wrap">
@@ -484,7 +506,7 @@
         <div class="footer-brand">
           <a class="brand-logo" href="#top" aria-label="InterVarsity at Northern Michigan University — home">
             <img class="brand-logo-img" src="/assets/logos/InterVarsity_horizontal_white.png" width="1276" height="390" alt="InterVarsity" />
-            <span class="chapter">Northern<br />Michigan U</span>
+            <span class="chapter">Northern<br />Michigan University</span>
           </a>
           <p>A community of students and faculty following Jesus at Northern Michigan University in Marquette, MI.</p>
         </div>
@@ -495,6 +517,7 @@
             <li><a href="#what-we-do">What we do</a></li>
             <li><a href="#small-groups">Small groups</a></li>
             <li><a href="#events">Events</a></li>
+            <li><a href="#newsletter">Newsletter</a></li>
             <li><a href="#contact">Get connected</a></li>
           </ul>
         </div>

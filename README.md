@@ -64,6 +64,9 @@ intervarsitynmu/
   - `GET  /api/health` — heartbeat (`{ ok: true, ... }`)
   - `POST /api/contact` — validates the form, logs it, and (optionally) saves
     to KV and/or emails you. By default it just logs to `wrangler tail`.
+  - `POST /api/subscribe` — the President's newsletter opt-in. Validates the
+    email and logs it (and saves to KV if bound). Set `RESEND_AUDIENCE_ID` to
+    also add subscribers to a Resend audience.
 
 ---
 

@@ -91,64 +91,93 @@
   var yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
-  /* ----- Contact form → POST /api/contact ----- */
-  var form = document.getElementById("contact-form");
-  var status = document.getElementById("form-status");
-  var submitBtn = document.getElementById("submit-btn");
-
-  function showStatus(kind, msg) {
-    status.textContent = msg;
-    status.className = "form-status show " + kind;
+  /* ----- Async form submit helper (contact + newsletter) ----- */
+  function showStatusOn(statusEl, kind, msg) {
+    statusEl.textContent = msg;
+    statusEl.className = "form-status show " + kind;
   }
 
+  function submitForm(opts) {
+    var btn = opts.btnEl;
+    var statusEl = opts.statusEl;
+    var original = btn.innerHTML;
+    btn.disabled = true;
+    btn.setAttribute("aria-busy", "true");
+    btn.textContent = "Sending…";
+    statusEl.className = "form-status";
+
+    return fetch(opts.endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(opts.data)
+    })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (body) {
+          return { ok: res.ok, status: res.status, body: body };
+        });
+      })
+      .then(function (r) {
+        if (r.ok) {
+          opts.form.reset();
+          showStatusOn(statusEl, "ok", (r.body && r.body.message) || opts.okFallback);
+        } else {
+          showStatusOn(statusEl, "err", (r.body && r.body.error) || "Hmm, that didn't go through. Please try again, or email nmu@intervarsity.org.");
+        }
+      })
+      .catch(function () {
+        showStatusOn(statusEl, "err", "Network hiccup. Please try again, or email nmu@intervarsity.org.");
+      })
+      .then(function () {
+        btn.disabled = false;
+        btn.removeAttribute("aria-busy");
+        btn.innerHTML = original;
+      });
+  }
+
+  /* ----- Contact form → POST /api/contact ----- */
+  var form = document.getElementById("contact-form");
   if (form) {
+    var contactStatus = document.getElementById("form-status");
+    var contactBtn = document.getElementById("submit-btn");
     form.addEventListener("submit", function (e) {
       e.preventDefault();
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+      submitForm({
+        form: form,
+        endpoint: "/api/contact",
+        statusEl: contactStatus,
+        btnEl: contactBtn,
+        okFallback: "Thanks! We got your message and will be in touch soon. 🎉",
+        data: {
+          name: form.name.value.trim(),
+          email: form.email.value.trim(),
+          interest: form.interest.value,
+          message: form.message.value.trim(),
+          company: form.company.value // honeypot — must stay empty
+        }
+      });
+    });
+  }
 
-      // Native validation first.
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
-
-      var data = {
-        name: form.name.value.trim(),
-        email: form.email.value.trim(),
-        interest: form.interest.value,
-        message: form.message.value.trim(),
-        company: form.company.value // honeypot — must stay empty
-      };
-
-      var original = submitBtn.innerHTML;
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Sending…";
-      status.className = "form-status";
-
-      fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(data)
-      })
-        .then(function (res) {
-          return res.json().catch(function () { return {}; }).then(function (body) {
-            return { ok: res.ok, status: res.status, body: body };
-          });
-        })
-        .then(function (r) {
-          if (r.ok) {
-            form.reset();
-            showStatus("ok", (r.body && r.body.message) || "Thanks! We got your message and will be in touch soon. 🎉");
-          } else {
-            showStatus("err", (r.body && r.body.error) || "Hmm, that didn't go through. Please try again, or email nmu@intervarsity.org.");
-          }
-        })
-        .catch(function () {
-          showStatus("err", "Network hiccup. Please try again, or email nmu@intervarsity.org.");
-        })
-        .then(function () {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = original;
-        });
+  /* ----- Newsletter form → POST /api/subscribe ----- */
+  var nlForm = document.getElementById("newsletter-form");
+  if (nlForm) {
+    var nlStatus = document.getElementById("nl-status");
+    var nlBtn = document.getElementById("nl-submit");
+    nlForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (!nlForm.checkValidity()) { nlForm.reportValidity(); return; }
+      submitForm({
+        form: nlForm,
+        endpoint: "/api/subscribe",
+        statusEl: nlStatus,
+        btnEl: nlBtn,
+        okFallback: "You're on the list! Watch your inbox. 🎉",
+        data: {
+          email: nlForm.email.value.trim(),
+          company: nlForm.company.value // honeypot — must stay empty
+        }
+      });
     });
   }
 })();

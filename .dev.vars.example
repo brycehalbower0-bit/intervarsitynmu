@@ -6,3 +6,7 @@ NOTIFY_EMAIL="nmu@intervarsity.org"
 
 # Resend API key (https://resend.com) — for production use `wrangler secret put`:
 RESEND_API_KEY=""
+
+# Resend Audience ID for the President's newsletter opt-in (POST /api/subscribe).
+# Leave blank to just log/store signups; set it to add subscribers to the audience.
+RESEND_AUDIENCE_ID=""

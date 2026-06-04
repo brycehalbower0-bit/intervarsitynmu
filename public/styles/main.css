@@ -163,7 +163,8 @@ h1, h2, h3, h4 {
 /* Logo lockup: inline mark + slab-serif wordmark + chapter label */
 .brand-logo { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; flex-shrink: 0; }
 .brand-logo-img { height: 36px; width: auto; flex-shrink: 0; }
-.brand-logo .chapter { border-left: 2px solid var(--gray-line); padding-left: .55rem; font-family: var(--font-display); font-weight: 700; font-size: .66rem; line-height: 1.12; text-transform: uppercase; letter-spacing: .04em; color: var(--text-gray); }
+.brand-logo .chapter { border-left: 2px solid var(--gray-line); padding-left: .55rem; font-family: var(--font-display); font-weight: 700; font-size: .64rem; line-height: 1.12; text-transform: uppercase; letter-spacing: .03em; color: var(--text-gray); }
+@media (max-width: 430px) { .brand-logo .chapter { font-size: .56rem; letter-spacing: .02em; padding-left: .45rem; } }
 .brand-logo:hover { opacity: .9; }
 
 .nav-links { display: flex; align-items: center; gap: .35rem; margin-left: auto; }
@@ -238,7 +239,7 @@ h1, h2, h3, h4 {
 /* Hero art card — concentric circles + mark */
 .hero-art { position: relative; aspect-ratio: 1 / 1; display: grid; place-items: center; }
 .hero-art .rings { position: absolute; inset: 0; width: 100%; height: 100%; }
-.hero-art .mark-xl { width: 46%; filter: drop-shadow(0 18px 40px rgba(0, 0, 0, .35)); }
+.hero-art .mark-xl { width: 36%; filter: drop-shadow(0 18px 40px rgba(0, 0, 0, .35)); transform: translateY(6%); }
 .hero-badge {
   position: absolute; bottom: 4%; right: -2%; background: #fff; color: var(--faithful-navy);
   border-radius: 16px; padding: .8rem 1rem; box-shadow: var(--shadow-lg); transform: rotate(-3deg);
@@ -407,6 +408,28 @@ h1, h2, h3, h4 {
 .socials a { width: 44px; height: 44px; border-radius: 12px; background: var(--faithful-navy); color: #fff; display: grid; place-items: center; transition: transform .15s, background .15s; }
 .socials a:hover { transform: translateY(-3px); background: var(--revival-orange); color: #fff; }
 .socials svg { width: 22px; height: 22px; }
+
+/* ----- Newsletter opt-in ----- */
+.newsletter { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(1.4rem, 4vw, 3rem); align-items: center; }
+@media (max-width: 820px) { .newsletter { grid-template-columns: 1fr; } }
+.newsletter-copy h2 { font-size: clamp(1.7rem, 1.2rem + 2vw, 2.4rem); margin-top: .3rem; }
+.newsletter-copy p { color: rgba(255, 255, 255, .92); margin-top: .8rem; max-width: 36rem; }
+.newsletter-form { width: 100%; }
+.nl-row { display: flex; gap: .6rem; flex-wrap: wrap; }
+.nl-row input {
+  flex: 1 1 15rem; font: inherit; color: var(--text-gray); padding: .85rem 1.1rem;
+  border: 1.5px solid transparent; border-radius: 999px; background: #fff;
+  transition: box-shadow .15s;
+}
+.nl-row input:focus { outline: none; box-shadow: 0 0 0 4px rgba(255, 255, 255, .4); }
+.nl-row .btn { flex: 0 0 auto; }
+.nl-note { color: rgba(255, 255, 255, .8); margin-top: .7rem; }
+.newsletter .form-status { max-width: 32rem; }
+@media (max-width: 520px) {
+  .nl-row { flex-direction: column; }
+  .nl-row .btn { width: 100%; justify-content: center; }
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* ==========================================================================
    CTA band + Footer

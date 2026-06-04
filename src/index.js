@@ -15,7 +15,7 @@
 export default {
   /**
    * @param {Request} request
-   * @param {{ ASSETS: Fetcher, SUBMISSIONS?: KVNamespace, NOTIFY_EMAIL?: string, RESEND_API_KEY?: string }} env
+   * @param {{ ASSETS: Fetcher, SUBMISSIONS?: KVNamespace, NOTIFY_EMAIL?: string, RESEND_API_KEY?: string, RESEND_AUDIENCE_ID?: string }} env
    * @param {ExecutionContext} ctx
    */
   async fetch(request, env, ctx) {
@@ -30,6 +30,13 @@ export default {
         return json({ error: "Method not allowed." }, 405, { Allow: "POST" });
       }
       return handleContact(request, env, ctx);
+    }
+
+    if (url.pathname === "/api/subscribe") {
+      if (request.method !== "POST") {
+        return json({ error: "Method not allowed." }, 405, { Allow: "POST" });
+      }
+      return handleSubscribe(request, env, ctx);
     }
 
     // Not an API route — serve the static site.
@@ -126,6 +133,84 @@ async function sendNotification(env, s) {
     if (!res.ok) console.error("Resend error", res.status, await res.text());
   } catch (err) {
     console.error("Notification failed", err);
+  }
+}
+
+/**
+ * Newsletter opt-in (the Student President's newsletter).
+ *
+ * "Collect now, wire later": every signup is validated and logged (visible via
+ * `wrangler tail`) and, if a SUBMISSIONS KV namespace is bound, stored. When you
+ * are ready to send, set RESEND_API_KEY + RESEND_AUDIENCE_ID and signups will
+ * also be added to your Resend audience — no front-end changes needed.
+ */
+async function handleSubscribe(request, env, ctx) {
+  const origin = request.headers.get("Origin");
+  const host = request.headers.get("Host");
+  if (origin && host && !originMatchesHost(origin, host)) {
+    return json({ error: "Cross-origin requests are not allowed." }, 403);
+  }
+
+  let data;
+  try {
+    data = await request.json();
+  } catch {
+    return json({ error: "Please send valid JSON." }, 400);
+  }
+
+  // Honeypot: real users never fill the hidden "company" field.
+  if (typeof data.company === "string" && data.company.trim() !== "") {
+    return json({ ok: true, message: "You're on the list! Watch your inbox." });
+  }
+
+  const email = clean(data.email, 200);
+  if (!email || !isEmail(email)) {
+    return json({ error: "Please enter a valid email.", fields: { email: "Please enter a valid email." } }, 422);
+  }
+
+  const signup = {
+    email,
+    list: "president-newsletter",
+    at: new Date().toISOString(),
+    ua: request.headers.get("User-Agent") || "",
+    country: request.cf && request.cf.country ? request.cf.country : "",
+  };
+
+  // Always log to the Worker tail (visible via `wrangler tail`).
+  console.log("newsletter signup", JSON.stringify(signup));
+
+  // OPTIONAL: persist to KV if a SUBMISSIONS namespace is bound.
+  if (env.SUBMISSIONS) {
+    try {
+      const key = `newsletter:${signup.at}:${crypto.randomUUID()}`;
+      await env.SUBMISSIONS.put(key, JSON.stringify(signup));
+    } catch (err) {
+      console.error("KV put failed", err);
+    }
+  }
+
+  // OPTIONAL (wire later): add the contact to a Resend audience.
+  // Set RESEND_API_KEY + RESEND_AUDIENCE_ID as secrets to enable sending.
+  if (env.RESEND_API_KEY && env.RESEND_AUDIENCE_ID) {
+    ctx.waitUntil(addToResendAudience(env, email));
+  }
+
+  return json({ ok: true, message: "You're on the list! Watch your inbox for the next newsletter." });
+}
+
+async function addToResendAudience(env, email) {
+  try {
+    const res = await fetch(`https://api.resend.com/audiences/${env.RESEND_AUDIENCE_ID}/contacts`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, unsubscribed: false }),
+    });
+    if (!res.ok) console.error("Resend audience error", res.status, await res.text());
+  } catch (err) {
+    console.error("Resend audience add failed", err);
   }
 }
 
