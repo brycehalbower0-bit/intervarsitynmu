@@ -159,11 +159,9 @@ h1, h2, h3, h4 {
 
 /* Logo lockup: inline mark + slab-serif wordmark + chapter label */
 .brand-logo { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; flex-shrink: 0; }
-.brand-logo .mark { width: 40px; height: 40px; flex-shrink: 0; }
-.brand-logo .lockup-text { display: flex; align-items: center; gap: .55rem; }
-.brand-logo .wordmark { font-family: var(--font-slab); font-weight: 600; font-size: 1.5rem; color: var(--revival-orange); line-height: 1; letter-spacing: -.01em; }
+.brand-logo-img { height: 36px; width: auto; flex-shrink: 0; }
 .brand-logo .chapter { border-left: 2px solid var(--gray-line); padding-left: .55rem; font-family: var(--font-display); font-weight: 700; font-size: .66rem; line-height: 1.12; text-transform: uppercase; letter-spacing: .04em; color: var(--text-gray); }
-.brand-logo:hover .wordmark { color: var(--orange-shade); }
+.brand-logo:hover { opacity: .9; }
 
 .nav-links { display: flex; align-items: center; gap: .35rem; margin-left: auto; }
 .nav-links a {
@@ -286,6 +284,8 @@ h1, h2, h3, h4 {
   margin-bottom: 1rem; color: #fff; background: var(--missional-blue);
 }
 .card .ico svg { width: 28px; height: 28px; }
+.card .ico img { width: 30px; height: 30px; object-fit: contain; }
+.btn-ico { width: 18px; height: 18px; object-fit: contain; }
 .card--orange .ico { background: var(--grad-orange); }
 .card--blue .ico { background: var(--grad-blue); }
 .card--green .ico { background: var(--new-life-green); }
@@ -318,7 +318,7 @@ h1, h2, h3, h4 {
 .meet-card .body { padding: 1.4rem 1.6rem; }
 .meet-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .85rem; }
 .meet-list li { display: grid; grid-template-columns: 26px 1fr; gap: .75rem; align-items: start; }
-.meet-list svg { width: 22px; height: 22px; color: var(--revival-orange); margin-top: .15rem; }
+.meet-list svg, .meet-list img { width: 24px; height: 24px; color: var(--revival-orange); margin-top: .15rem; object-fit: contain; }
 .meet-list b { color: var(--faithful-navy); }
 
 /* Small group cards */
@@ -397,6 +397,7 @@ h1, h2, h3, h4 {
 .info-row { display: flex; gap: .9rem; align-items: flex-start; }
 .info-row .ico { flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; background: var(--gray-light); color: var(--missional-blue); display: grid; place-items: center; }
 .info-row .ico svg { width: 22px; height: 22px; }
+.info-row .ico img { width: 24px; height: 24px; object-fit: contain; }
 .info-row b { color: var(--faithful-navy); font-family: var(--font-display); }
 .info-row a { font-weight: 600; }
 .socials { display: flex; gap: .6rem; margin-top: .3rem; }
@@ -414,7 +415,7 @@ h1, h2, h3, h4 {
 .site-footer { background: var(--faithful-navy); color: rgba(255, 255, 255, .82); padding: clamp(2.8rem, 6vw, 4rem) 0 1.6rem; }
 .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 2rem; }
 @media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr; gap: 1.6rem; } }
-.footer-brand .brand-logo .wordmark { color: #fff; }
+.footer-brand .brand-logo-img { height: 42px; }
 .footer-brand .brand-logo .chapter { color: rgba(255, 255, 255, .8); border-left-color: rgba(255, 255, 255, .3); }
 .footer-brand p { margin-top: 1rem; max-width: 30ch; font-size: .95rem; }
 .footer-col h4 { color: #fff; font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; margin-bottom: .9rem; font-family: var(--font-display); }

@@ -42,9 +42,12 @@ intervarsitynmu/
 │   ├── styles/main.css     # brand design system (colors, type, components)
 │   ├── scripts/main.js     # nav, scroll reveals, contact-form submit
 │   └── assets/
-│       ├── mark.svg        # pictorial mark (PLACEHOLDER logo)
-│       ├── favicon.svg     # reversed mark on Missional Blue
-│       ├── og.svg / og.png # social share image (1200×630)
+│       ├── logos/          # official InterVarsity logos + cropped mark + favicons
+│       ├── icons/          # official 2024 icon set (the ones the page uses)
+│       ├── brand/          # concentric-circle motifs
+│       └── og.png          # social share image (1200×630)
+├── brand-assets/           # full official brand pack (NOT deployed) — see its README
+├── tools/build-og.py       # regenerates og.png from the official logo
 ├── src/index.js            # Worker: serves assets + /api/contact, /api/health
 ├── wrangler.jsonc          # Cloudflare config (assets + worker + optional KV/email)
 ├── package.json
@@ -96,8 +99,9 @@ Pulled straight from the Brand Book and encoded as CSS variables in
   [intervarsity.org](https://intervarsity.org).
 - ✅ Primary colors lead; secondary colors are accents only.
 - ✅ Gradients are linear with light moving up/right.
-- ⚠️ **Replace the placeholder logo** with one created by the official
-  **chapter logo generator** (required) before going live.
+- ✅ Uses the **official** InterVarsity logos + 2024 icon set.
+- ⚠️ For production, generate the **chapter lockup** ("InterVarsity | Northern
+  Michigan University") from the official chapter logo generator and drop it in.
 - ⚠️ Register the live site through the Staff Portal so it's listed at
   `intervarsity.org/chapters`.
 
@@ -107,9 +111,10 @@ Pulled straight from the Brand Book and encoded as CSS variables in
 
 Search the project for these and replace with real chapter info:
 
-1. **Logo** — swap `public/assets/mark.svg`, `favicon.svg`, and `og.svg` for your
-   official generated chapter logo, then re-run `npm run build:og`. The inline
-   `#mark` / `#mark-white` SVG symbols live near the top of `index.html`.
+1. **Logo** — the site uses the official horizontal logo
+   (`public/assets/logos/`). To use the NMU chapter lockup, drop the generated
+   files into `public/assets/logos/` (keep the filenames) and re-run
+   `npm run build:og` to refresh the social image.
 2. **Meeting time & place** — `Jamrich Hall 1100`, `Thursdays · 7:00 PM`
    (hero, "Thursdays" section, contact, FAQ).
 3. **Small groups** — the six cards in the `#small-groups` section.
@@ -140,8 +145,7 @@ By default submissions are logged (`npm run tail`). To do more:
 
 ## Notes & credits
 
-- Logo artwork here is an **original, abstract placeholder** inspired by the
-  brand (an open book sheltered by an arch). It is **not** the official mark and
-  must be replaced per brand policy.
+- This site uses the chapter's **official** InterVarsity logos, icon set, and
+  visual assets (provided by the chapter; full pack in `brand-assets/`).
 - "InterVarsity," "InterVarsity Christian Fellowship/USA," and the InterVarsity
   logo are trademarks of InterVarsity Christian Fellowship/USA.

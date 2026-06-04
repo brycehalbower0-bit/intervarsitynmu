@@ -9,7 +9,7 @@
     "start": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
-    "build:og": "rsvg-convert -w 1200 -h 630 public/assets/og.svg -o public/assets/og.png"
+    "build:og": "python3 tools/build-og.py"
   },
   "keywords": [
     "intervarsity",
