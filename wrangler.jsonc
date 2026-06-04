@@ -2,7 +2,7 @@
   // Cloudflare Workers + static assets config.
   // Docs: https://developers.cloudflare.com/workers/static-assets/
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "intervarsity-nmu",
+  "name": "intervarsitynmu",
   "main": "src/index.js",
   "compatibility_date": "2025-05-05",
   "assets": {
