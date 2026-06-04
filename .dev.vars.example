@@ -1,0 +1,8 @@
+# Copy to ".dev.vars" for local `wrangler dev` (never commit the real file).
+# These power the OPTIONAL email notification in src/index.js.
+
+# Where contact-form notifications should be sent:
+NOTIFY_EMAIL="nmu@intervarsity.org"
+
+# Resend API key (https://resend.com) — for production use `wrangler secret put`:
+RESEND_API_KEY=""

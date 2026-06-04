@@ -1,0 +1,34 @@
+{
+  // Cloudflare Workers + static assets config.
+  // Docs: https://developers.cloudflare.com/workers/static-assets/
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "intervarsity-nmu",
+  "main": "src/index.js",
+  "compatibility_date": "2025-05-05",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // Serve /404.html for unknown paths (nice 404s).
+    "not_found_handling": "404-page",
+    // Only run the Worker first for API routes; static files are served
+    // directly by the edge for best performance.
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": {
+    "enabled": true
+  }
+
+  // ----- Optional add-ons (uncomment + configure when you need them) -----
+  //
+  // Persist contact submissions to KV:
+  //   1) npx wrangler kv namespace create SUBMISSIONS
+  //   2) paste the returned id below
+  // "kv_namespaces": [
+  //   { "binding": "SUBMISSIONS", "id": "<your-kv-namespace-id>" }
+  // ],
+  //
+  // Email notifications via Resend (https://resend.com):
+  //   npx wrangler secret put RESEND_API_KEY
+  //   npx wrangler secret put NOTIFY_EMAIL
+  // (Secrets are set in the dashboard/CLI, not committed here.)
+}

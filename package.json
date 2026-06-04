@@ -1,0 +1,25 @@
+{
+  "name": "intervarsity-nmu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Website mock-up for InterVarsity Christian Fellowship at Northern Michigan University — a Cloudflare Workers + static assets project.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "build:og": "rsvg-convert -w 1200 -h 630 public/assets/og.svg -o public/assets/og.png"
+  },
+  "keywords": [
+    "intervarsity",
+    "nmu",
+    "cloudflare",
+    "workers",
+    "pages"
+  ],
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
