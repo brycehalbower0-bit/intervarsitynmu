@@ -10,12 +10,17 @@
  * Everything else falls through to the static assets. See wrangler.jsonc:
  * `assets.run_worker_first` routes only /api/* through this Worker; static
  * files are served directly by Cloudflare's edge.
+ *
+ * The community platform (accounts, calendar, event threads, moderation) lives
+ * under /api/community/* — see src/community.js.
  */
+import { handleCommunity } from "./community.js";
+import { Db } from "./lib/db.js";
 
 export default {
   /**
    * @param {Request} request
-   * @param {{ ASSETS: Fetcher, SUBMISSIONS?: KVNamespace, NOTIFY_EMAIL?: string, RESEND_API_KEY?: string, RESEND_AUDIENCE_ID?: string }} env
+   * @param {{ ASSETS: Fetcher, DB?: D1Database, SUBMISSIONS?: KVNamespace, NOTIFY_EMAIL?: string, RESEND_API_KEY?: string, RESEND_AUDIENCE_ID?: string, COMMUNITY_FROM?: string, SITE_URL?: string, LEADER_EMAILS?: string }} env
    * @param {ExecutionContext} ctx
    */
   async fetch(request, env, ctx) {
@@ -23,6 +28,10 @@ export default {
 
     if (url.pathname === "/api/health") {
       return json({ ok: true, service: "intervarsity-nmu", time: new Date().toISOString() });
+    }
+
+    if (url.pathname === "/api/community" || url.pathname.startsWith("/api/community/")) {
+      return handleCommunity(request, env, ctx);
     }
 
     if (url.pathname === "/api/contact") {
@@ -42,6 +51,11 @@ export default {
     // Not an API route — serve the static site.
     if (env.ASSETS) return env.ASSETS.fetch(request);
     return new Response("Not found", { status: 404 });
+  },
+
+  // Cron: purge expired sessions/login tokens (set triggers.crons in wrangler).
+  async scheduled(event, env, ctx) {
+    if (env.DB) ctx.waitUntil(new Db(env.DB).cleanupExpired());
   },
 };
 

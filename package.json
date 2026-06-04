@@ -9,7 +9,10 @@
     "start": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
-    "build:og": "python3 tools/build-og.py"
+    "build:og": "python3 tools/build-og.py",
+    "test": "node --experimental-sqlite test/run.mjs",
+    "db:migrate": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote"
   },
   "keywords": [
     "intervarsity",

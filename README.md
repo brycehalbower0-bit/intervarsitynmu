@@ -146,6 +146,49 @@ By default submissions are logged (`npm run tail`). To do more:
 
 ---
 
+## Community platform (accounts, calendar, discussions)
+
+A signed-in community area where students **talk about events** and a public
+**calendar** anyone can browse. Built on the same Cloudflare project.
+
+- **Pages:** `/calendar` (public month calendar) and `/community` (the app —
+  sign-in, event discussions, profile, leader tools).
+- **Sign-in:** passwordless **magic links**. Anyone with an `@nmu.edu` address
+  can self-serve; everyone else needs a **leader-issued invite**. Real display
+  names are required.
+- **Discussions:** any member can start one thread per event and reply. Posts
+  that hit the **banned-word list** are held in a leaders-only **review queue**
+  (approve to publish, reject to archive off the site).
+- **Leaders:** seeded from `LEADER_EMAILS`; they moderate, manage the word list,
+  invite outsiders, and add calendar events.
+- **Data:** Cloudflare **D1** (schema + seed in `migrations/`).
+- DMs are planned (Phase 3) and not yet built — see `docs/forum-and-dms-plan.md`.
+
+### Set it up
+
+```bash
+# 1) Create the database, then paste the printed database_id into wrangler.jsonc
+npx wrangler d1 create iv-nmu-community
+
+# 2) Apply the schema (+ seed events/word-list)
+npm run db:migrate            # local dev
+npm run db:migrate:remote     # production
+
+# 3) Configure who's a leader and your origin (wrangler.jsonc → vars, or .dev.vars)
+#    LEADER_EMAILS="you@nmu.edu"   SITE_URL="https://<your-worker-or-domain>"
+
+# 4) For real emails, set the Resend secret (otherwise sign-in links are logged):
+npx wrangler secret put RESEND_API_KEY   # and set COMMUNITY_FROM to a verified sender
+```
+
+Then `npm run dev`, open `/community`, and sign in. Without `RESEND_API_KEY`,
+the sign-in/invite links are returned in the response and printed to the dev
+console so you can click through locally.
+
+Run the API test suite with `npm test`.
+
+---
+
 ## Notes & credits
 
 - This site uses the chapter's **official** InterVarsity logos, icon set, and

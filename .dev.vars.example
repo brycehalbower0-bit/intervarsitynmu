@@ -10,3 +10,13 @@ RESEND_API_KEY=""
 # Resend Audience ID for the President's newsletter opt-in (POST /api/subscribe).
 # Leave blank to just log/store signups; set it to add subscribers to the audience.
 RESEND_AUDIENCE_ID=""
+
+# ----- Community platform -----
+# Base URL used to build magic-link sign-in links (your local dev origin here).
+SITE_URL="http://localhost:8787"
+# Comma-separated staff emails that get leader/moderator access on first sign-in.
+LEADER_EMAILS="you@nmu.edu"
+# Sender for community emails (magic links). Needs a verified Resend domain.
+# If RESEND_API_KEY is unset, sign-in links are printed to the dev console /
+# returned in the API response instead of emailed.
+COMMUNITY_FROM="InterVarsity NMU <community@your-domain.org>"

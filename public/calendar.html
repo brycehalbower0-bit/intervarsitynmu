@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+  <script>document.documentElement.classList.remove("no-js");document.documentElement.classList.add("js");</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calendar — InterVarsity at NMU</title>
+  <meta name="description" content="The InterVarsity at NMU chapter calendar — large group, small groups, retreats, and events. Click an event to see details and join the discussion." />
+  <meta name="theme-color" content="#006880" />
+  <link rel="icon" href="/assets/logos/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="/assets/logos/favicon-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Mulish:wght@400;500;600;700&family=Zilla+Slab:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles/main.css" />
+  <link rel="stylesheet" href="/styles/community.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="app-header">
+    <nav class="wrap app-nav" aria-label="Primary">
+      <a class="brand-logo" href="/" aria-label="InterVarsity at Northern Michigan University — home">
+        <img class="brand-logo-img" src="/assets/logos/InterVarsity_horizontal_gradient.png" width="1276" height="390" alt="InterVarsity" />
+        <span class="chapter">Northern<br />Michigan University</span>
+      </a>
+      <div class="app-links">
+        <a href="/">Home</a>
+        <a href="/calendar" class="active" aria-current="page">Calendar</a>
+        <a href="/community">Community</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="app-main">
+    <div class="wrap">
+      <div class="page-head">
+        <p class="eyebrow">What's happening</p>
+        <h1>Chapter Calendar</h1>
+        <p>Large group, small groups, retreats, and one-off events. Click any event for details — and to jump into the conversation about it.</p>
+      </div>
+
+      <div class="cal-controls">
+        <button class="cal-nav-btn" id="cal-prev" aria-label="Previous month">‹</button>
+        <button class="cal-nav-btn" id="cal-next" aria-label="Next month">›</button>
+        <span class="cal-title" id="cal-title" aria-live="polite">…</span>
+        <button class="btn btn--ghost btn--sm" id="cal-today" type="button">Today</button>
+      </div>
+
+      <div id="cal-root" aria-live="polite"><div class="spinner" role="status" aria-label="Loading"></div></div>
+    </div>
+  </main>
+
+  <div id="modal-root"></div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-legal" style="border:0;margin:0;padding-top:0">
+        <span class="org">A chapter of <a href="https://intervarsity.org" target="_blank" rel="noopener">InterVarsity Christian Fellowship/USA</a></span>
+        <span><a href="/">← Back to the homepage</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/scripts/calendar.js" defer></script>
+</body>
+</html>

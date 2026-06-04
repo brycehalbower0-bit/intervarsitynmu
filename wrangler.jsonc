@@ -16,9 +16,38 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+
+  // ----- Community platform (accounts, calendar, threads, moderation) -----
+  // 1) Create the database:  npx wrangler d1 create iv-nmu-community
+  // 2) Paste the returned database_id below (replace the placeholder).
+  // 3) Apply the schema:      npm run db:migrate          (local dev)
+  //                           npm run db:migrate:remote   (production)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "iv-nmu-community",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Non-secret config. SITE_URL must match your deployed origin (used to build
+  // magic-link sign-in links). LEADER_EMAILS lists staff who get leader access.
+  "vars": {
+    "SITE_URL": "https://intervarsity-nmu.example.workers.dev",
+    "LEADER_EMAILS": "",
+    "COMMUNITY_FROM": "InterVarsity NMU <community@your-domain.org>"
+  },
+
+  // Nightly cleanup of expired sessions / login tokens.
+  "triggers": { "crons": ["0 7 * * *"] }
 
   // ----- Optional add-ons (uncomment + configure when you need them) -----
+  //
+  // Magic-link sign-in + email notifications use Resend. Without a key, links
+  // are logged/returned (dev mode); for production set the secret:
+  //   npx wrangler secret put RESEND_API_KEY
   //
   // Persist contact submissions to KV:
   //   1) npx wrangler kv namespace create SUBMISSIONS
