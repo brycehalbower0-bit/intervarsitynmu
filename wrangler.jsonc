@@ -27,7 +27,7 @@
     {
       "binding": "DB",
       "database_name": "iv-nmu-community",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "3fd55d87-c69e-44cf-9991-68dfbe59fd3b",
       "migrations_dir": "migrations"
     }
   ],
@@ -35,13 +35,25 @@
   // Non-secret config. SITE_URL must match your deployed origin (used to build
   // magic-link sign-in links). LEADER_EMAILS lists staff who get leader access.
   "vars": {
-    "SITE_URL": "https://intervarsity-nmu.example.workers.dev",
-    "LEADER_EMAILS": "",
-    "COMMUNITY_FROM": "InterVarsity NMU <community@your-domain.org>"
+    "SITE_URL": "https://nmuintervarsity.com",
+    "LEADER_EMAILS": "brhalbow@nmu.edu",
+    "COMMUNITY_FROM": "InterVarsity NMU <community@nmuintervarsity.com>"
   },
 
   // Nightly cleanup of expired sessions / login tokens.
-  "triggers": { "crons": ["0 7 * * *"] }
+  "triggers": { "crons": ["0 7 * * *"] },
+
+  // Custom domains: serve the site at the apex + www (alongside the workers.dev
+  // URL). Cloudflare provisions and renews the TLS certificate automatically.
+  "routes": [
+    { "pattern": "nmuintervarsity.com", "custom_domain": true },
+    { "pattern": "www.nmuintervarsity.com", "custom_domain": true }
+  ],
+
+  // Adding custom routes turns these off by default; keep them on so the
+  // workers.dev URL and per-version preview URLs stay available.
+  "workers_dev": true,
+  "preview_urls": true
 
   // ----- Optional add-ons (uncomment + configure when you need them) -----
   //
