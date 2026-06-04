@@ -1,133 +1,192 @@
 # Plan: Event discussion forum + direct messages
 
-A design plan for adding a community space to the InterVarsity at NMU site where
-students can **talk about events** and **DM each other** if they want. This is a
-much bigger build than the current static site + Resend, so this document lays
-out the architecture, the safety/moderation requirements, and a phased path
-before any code is written.
+A design + implementation plan for a community space on the InterVarsity at NMU
+site where students **talk about events** and (later) **DM each other**. This is
+a much bigger build than the current static site + Resend, so this document is
+the source of truth before code is written.
 
-> Status: **proposal — not yet built.** A few decisions (below) need your input
-> first. Nothing here changes the live site.
-
----
-
-## 1. Why this is a big step (and what changes)
-
-Today the site is **static assets + a tiny Worker API** (contact + newsletter).
-It has no users, no database, and no persistent state beyond optional KV logging.
-
-A forum with DMs is a small **social application**. It needs, at minimum:
-
-- **Identity** — accounts so posts/messages belong to someone.
-- **A database** — to store users, posts, comments, and messages.
-- **Authorization** — who can read, post, and DM whom.
-- **Moderation & safety** — reporting, blocking, admin tools, rate limits.
-- **(For live DMs) realtime** — websockets so messages arrive without refresh.
-
-The good news: all of this fits on the **Cloudflare stack** you already deploy
-to, so we stay in one platform and one `wrangler deploy`.
+> Status: **decisions locked (see §1). Not yet built.** Event discussion is the
+> priority; DMs are a deliberate later phase.
 
 ---
 
-## 2. Proposed architecture (Cloudflare-native)
+## 1. Decisions (locked in)
 
-| Concern | Proposed tool | Notes |
+| Question | Decision |
+| --- | --- |
+| **Who can join/post** | Restricted to **`@nmu.edu`** (self-serve). Outsiders can join **only via a magic-link invite issued by a leader**. |
+| **Sign-in** | **Magic-link email** (passwordless), sent via Resend. Same mechanism powers leader invites. |
+| **DMs** | Everyone-to-everyone, **opt-in**. Low priority, minimal UI — a later phase, not a headline feature. |
+| **Moderation** | **Staff leaders** own the queue, backed by a **banned-word list**. |
+| **Display names** | **Real display names required** (no pseudonyms). |
+| **Flagged content** | If a post/comment hits the word list it goes into a **pending state visible only to leaders**. Leader **approves** → it publishes. Leader **rejects** → it's **archived (off the live site) and removed**. |
+| **Start scope** | **Event discussion first.** DMs follow later. |
+
+---
+
+## 2. Architecture (Cloudflare-native)
+
+Stays in your existing project — one `wrangler deploy`.
+
+| Concern | Tool | Notes |
 | --- | --- | --- |
-| App/API | **Workers** (extend `src/index.js`, or split into modules) | Same project. |
-| Auth | **Magic-link email** via Resend + signed session cookies | Passwordless; reuses Resend. No passwords to store. |
-| Database | **Cloudflare D1** (SQLite) | Users, posts, comments, reports, conversations, messages. |
-| Live DMs | **Durable Objects** (one per conversation) + WebSocket | Add in a later phase; start with simple polling. |
-| Rate limiting | **KV** or a Durable Object counter | Anti-spam/abuse. |
-| Media (optional) | **R2** | Defer — text-only first. |
-| Email notifications | **Resend** | "New reply", "new DM", weekly digest. |
+| App/API | **Workers** — new `/api/community/*` routes (split `src/` into modules) | Same project. |
+| Auth | **Magic-link email** (Resend) + signed **HttpOnly** session cookie | No passwords. Email is verified by construction. |
+| Database | **Cloudflare D1** (SQLite) | Users, sessions, invites, posts, comments, moderation. |
+| Anti-spam / token + session cleanup | **Workers Cron Trigger** | Purge expired tokens/sessions. |
+| Live DMs (Phase 3) | Start with **polling** (usage is low); upgrade to Durable Objects only if needed | Avoid realtime complexity up front. |
+| Media (optional, later) | **R2** | Text-only to start. |
 
-Why magic-link instead of passwords: no password storage/reset flows, low
-friction for students, and it naturally verifies the email. We can optionally
-**restrict sign-up to `@nmu.edu`** addresses to keep the space to the campus
-community. (Alternative: Google sign-in / Cloudflare Access — see decisions.)
+### Bindings / secrets to add (when we build)
 
-### Sketch data model (D1)
+- `DB` — D1 database binding.
+- `SESSION_SECRET` — HMAC key for signing session cookies (`wrangler secret put`).
+- `RESEND_API_KEY` — already used; also sends magic links.
+- `COMMUNITY_FROM` — verified Resend sender (e.g. `community@…`).
+- `SITE_URL` — base URL for building magic links.
+- `LEADER_EMAILS` — comma-separated bootstrap leaders (auto-granted `leader` on
+  first sign-in; they can then promote others).
+
+---
+
+## 3. Auth & membership flow
+
+**Sign in (magic link):**
+1. User enters their email on the community sign-in.
+2. Worker accepts it **only if** the address ends in `@nmu.edu` **or** there is a
+   valid, unexpired **invite** for it. Otherwise: "Ask a chapter leader for an
+   invite."
+3. Worker stores a hashed one-time token (`login_tokens`) and emails a link:
+   `…/api/community/auth/verify?token=…` (15-min expiry, single use).
+4. Clicking it verifies the token, creates/loads the `users` row, sets a signed
+   session cookie (HttpOnly, Secure, SameSite=Lax, ~30-day sliding), and
+   redirects in.
+5. **First sign-in requires setting a display name** before posting.
+
+**Leader invites (outsiders):** a leader enters an email → Worker writes an
+`invites` row and emails that person a magic link. That address is now allowed
+to sign in. Invites expire and are single-use.
+
+**Roles:** `member` (default) and `leader`. Leaders moderate, manage the word
+list, issue invites, and ban users. `LEADER_EMAILS` seeds the first leaders.
+
+---
+
+## 4. Data model (D1)
 
 ```sql
-users(id, email, display_name, created_at, role,           -- role: member | leader | admin
-      dm_opt_in, banned_at)
-sessions(id, user_id, created_at, expires_at, ip_hash)
-posts(id, author_id, event_key, title, body, created_at,   -- event_key ties a thread to an event
-      hidden_at)
-comments(id, post_id, author_id, body, created_at, hidden_at)
-reports(id, reporter_id, target_type, target_id, reason, created_at, resolved_at)
-blocks(blocker_id, blocked_id, created_at)                 -- for DMs
-conversations(id, user_a, user_b, created_at)              -- 1:1 DM
-messages(id, conversation_id, sender_id, body, created_at, read_at)
+users(id, email UNIQUE, display_name, role,            -- role: member | leader
+      dm_opt_in, created_at, banned_at, banned_by)
+login_tokens(id, email, token_hash, created_at, expires_at, used_at)
+invites(id, email, token_hash, invited_by, created_at, expires_at, used_at)
+sessions(id, user_id, created_at, expires_at)
+
+events(id, slug UNIQUE, title, starts_at, location, created_at)  -- threads attach here
+posts(id, event_id, author_id, body, status,           -- status: published | pending
+      flagged_terms, created_at)
+comments(id, post_id, author_id, body, status, flagged_terms, created_at)
+
+banned_terms(id, term UNIQUE, created_by, created_at)
+moderation_log(id, target_type, target_id, action,     -- action: approve | reject | ban | …
+               moderator_id, reason, created_at)
+archived_content(id, original_type, original_id, author_id, body,
+                 flagged_terms, rejected_by, rejected_at)   -- rejected items, off the live site
+reports(id, reporter_id, target_type, target_id, reason, created_at, resolved_at, resolved_by)
 ```
 
----
-
-## 3. Safety & moderation (non-negotiable)
-
-A student community with public posts **and private DMs** carries real
-responsibility. Before launch we need:
-
-- **Roles** — `member`, `leader`, `admin`. Leaders/admins can hide posts,
-  remove comments, and resolve reports.
-- **Reporting** — every post, comment, and DM has a "report" action that lands
-  in a moderation queue.
-- **Blocking** — users can block another user; blocks prevent DMs and hide
-  content both ways.
-- **DMs are opt-in** — users choose whether they're reachable by DM, and from
-  whom (e.g. "anyone" vs "leaders only"). Default to a conservative setting.
-- **Rate limits** — per-user posting/messaging caps to stop spam and abuse.
-- **Email verification** — guaranteed by magic-link sign-in.
-- **Audit log** — record moderation actions.
-- **Consent & privacy** — a short community-guidelines + privacy notice at
-  sign-up; the ability to delete your account and data; never expose emails to
-  other users. Confirm any **safeguarding** requirements with InterVarsity
-  staff, especially if any participants may be minors.
-- **Abuse tooling for DMs specifically** — report + block are the front line;
-  consider keeping a minimal retention window so reported messages can be
-  reviewed.
-
-These requirements are a big part of why this is "plan first."
+*Events source:* seed `events` from the current static Events section and let
+leaders add/edit them, so each discussion thread has a stable `slug`. (Default
+unless you'd rather make the public Events section fully dynamic too.)
 
 ---
 
-## 4. Phased delivery
+## 5. Moderation (word-list → leader review)
 
-Each phase is shippable on its own; we stop/adjust between phases.
+1. **On submit**, the server normalizes the text (lowercase, collapse
+   punctuation/spacing, basic leet folding) and scans for `banned_terms`.
+2. **Match → `status = pending`**, `flagged_terms` recorded. The author sees
+   "pending review"; everyone else doesn't see it. It appears in the leaders'
+   queue.
+3. **No match → `status = published`** immediately.
+4. **Leader queue:** approve → `published`; reject → copy to `archived_content`,
+   delete from `posts`/`comments` (off the live site), and log the action.
+5. **Reports** (user-flagged content) land in the same queue — planned as a fast
+   follow once event discussion is live.
 
-- **Phase 0 — Decisions & scaffolding.** Settle the open questions below; add D1
-  + a `/api` module structure; community guidelines + privacy copy.
-- **Phase 1 — Accounts.** Magic-link sign-in (Resend), sessions, profile
-  (display name, DM opt-in). No content yet.
-- **Phase 2 — Event discussion.** Threads tied to events (`event_key`), posts +
-  comments, with moderation basics: roles, report, hide/remove, rate limits.
-  This delivers the "talk about events" goal first.
-- **Phase 3 — Direct messages.** 1:1 DMs with block + report. Start with
-  request/response (poll for new messages), then upgrade to **Durable Object
-  WebSockets** for live delivery.
-- **Phase 4 — Polish.** Email notifications/digests (Resend), optional images
-  (R2), search, and a leader moderation dashboard.
-
-Rough effort: Phases 1–2 are the bulk of a forum; Phase 3 (esp. realtime) and
-Phase 4 add meaningful additional work. We can scope tighter once decisions are
-locked.
+The word list is a blunt tool (false positives/evasion), which is exactly why
+flagged items go to **human review** rather than auto-deleting, and why a report
+button is the planned backstop.
 
 ---
 
-## 5. Open decisions (need your input)
+## 6. Endpoints (`/api/community/*`)
 
-1. **Who can join / post?** Anyone with an email, or **restrict to `@nmu.edu`**?
-2. **Sign-in method:** magic-link email (recommended), Google sign-in, or
-   Cloudflare Access?
-3. **DM scope:** everyone-to-everyone (opt-in), **mutual-connection only**, or
-   "students can DM leaders" to start?
-4. **Who moderates?** Which staff/student leaders own the moderation queue?
-5. **Anonymity:** real display names required, or pseudonyms allowed?
-6. **Data retention:** how long do we keep DMs / removed content for safety
-   review?
-7. **Start scope:** ship **Phase 2 (event discussion) first** and treat DMs as a
-   follow-up? (Recommended — delivers value fast and keeps the risky realtime +
-   private-messaging work as a deliberate second step.)
+Public/auth:
+- `POST /auth/start` `{ email }` → validate eligibility, email magic link.
+- `GET  /auth/verify?token=…` → set session, redirect.
+- `POST /auth/logout`.
+- `GET  /me` → current user; `POST /me` `{ display_name, dm_opt_in }`.
 
-Once you've weighed in on these, I'll turn the chosen path into a concrete
-implementation plan (schema migrations, endpoints, UI) and we can start Phase 1.
+Event discussion:
+- `GET  /events` → events + thread/post counts.
+- `GET  /events/:slug/posts` → published posts (+ the viewer's own pending).
+- `POST /events/:slug/posts` `{ body }` → create (word-list gate).
+- `POST /posts/:id/comments` `{ body }` → create comment (word-list gate).
+- `POST /reports` `{ target_type, target_id, reason }` → flag (fast follow).
+
+Leader-only:
+- `POST /invites` `{ email }` → invite an outsider.
+- `GET  /mod/queue` → pending posts/comments (+ reports).
+- `POST /mod/:type/:id/approve` · `POST /mod/:type/:id/reject` `{ reason }`.
+- `GET/POST/DELETE /mod/terms` → manage the banned-word list.
+- `POST /mod/users/:id/ban`.
+
+All authenticated routes check the session cookie; leader routes additionally
+require `role = leader`. Posting/messaging is rate-limited per user.
+
+---
+
+## 7. UI
+
+A new community area styled with the existing `main.css` tokens/components
+(vanilla JS, no framework — consistent with the current site):
+
+- **Sign-in** — email field → "check your inbox" state.
+- **Profile** — set/edit display name; DM opt-in toggle (off by default).
+- **Events list** — cards linking into each event's thread.
+- **Thread** — posts + comments, composer with a "pending review" affordance.
+- **Leader area** — invite form, moderation queue (approve/reject), word-list
+  editor, ban control. Visible only to leaders.
+- A **"Community"** nav entry (prompts sign-in when logged out).
+
+DMs (Phase 3) get a small, deliberately minimal "Messages" entry — opt-in, 1:1,
+with report/block and the same word-list gate.
+
+---
+
+## 8. Build order
+
+- **Phase 1 — Accounts & auth.** D1 schema + migrations; magic-link sign-in
+  (`@nmu.edu` + invites); sessions; required display name; `LEADER_EMAILS`
+  bootstrap; leader invite endpoint; sign-in + profile UI; cron cleanup.
+- **Phase 2 — Event discussion + moderation (the priority).** Events, posts,
+  comments; word-list gate → pending/leader-only; leader queue
+  (approve / reject→archive); banned-terms management; ban; thread UI. Add the
+  report button here or immediately after.
+- **Phase 3 — DMs (minimal).** Opt-in 1:1 messages via polling; report/block;
+  word-list gate; small UI. Only if/when wanted.
+
+Each phase ships on its own; we review between phases.
+
+---
+
+## 9. Risks & notes
+
+- **Email deliverability** — Resend domain verification is required for magic
+  links to land (and not spam-folder).
+- **Word-list limits** — expect false positives (handled by leader approval) and
+  evasion (handled by the report backstop); not a content-safety guarantee.
+- **Safeguarding** — confirm any InterVarsity policy needs with staff,
+  especially if minors may participate, before enabling DMs.
+- **Scope** — Phases 1–2 are the bulk of a real forum; this is multi-session
+  work, but it's all on the Cloudflare stack you already deploy to.
